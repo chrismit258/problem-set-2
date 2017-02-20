@@ -60,6 +60,7 @@ genes=$datasets/bed/genes.hg19.bed.gz
 genome=$datasets/genome/hg19.genome
 
 answer_5=$(bedtools complement -i $genes -g $genome \
+    | awk '$1 == "chr22"' \
     | awk 'BEGIN {OFS="\t"} {print $0, $3-$2}' \
     | sort -k4nr \
     | head -n1 \
