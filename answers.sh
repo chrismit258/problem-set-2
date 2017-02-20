@@ -4,10 +4,12 @@
 
  # Use BEDtools intersect to identify the size of the largest overlap
  # between CTCF and H3K4me3 locations. 
- CTCF="$datasets/bedtools/ctcf.hela.chr22.bg.gz"
+ CTCF="$datasets/bed/encode.tfbs.chr22.bed.gz"
  H3K4me3="$datasets/bed/encode.h3k4me3.hela.chr22.bed.gz"
 
-answer_1=$(bedtools intersect -wo -a $CTCF -b $H3K4me3 \
+answer_1=$(zcat $CTCF \
+    | awk '$4=="CTCF"' \
+    | bedtools intersect -wo -a - -b $H3K4me3 \
     | sort -k15nr \
     | head -n1 \
     | awk '{print $15}')
@@ -28,9 +30,11 @@ echo "answer-2: $answer_2"
 
 #Use BEDtools to identify the length of the CTCF ChIP-seq peak (i.e.,
 #interval) that has the largest mean signal in ctcf.hela.chr22.bg.gz.
-encode="$datasets/bed/encode.tfbs.chr22.bed.gz"
+HeLa="$datasets/bedtools/ctcf.hela.chr22.bg.gz"
 
-answer_3=$(bedtools map -c 4 -o mean -a $encode -b $CTCF \
+answer_3=$(zcat $CTCF \
+    | awk '$4=="CTCF"' \
+    | bedtools map -c 4 -o mean -a - -b $HeLa \
     | sort -k5nr \
     | awk 'BEGIN {OFS="\t"} {print $0, $3 - $2}' \
     | head -n1 \
@@ -43,7 +47,7 @@ echo "answer-3: $answer_3"
 #the gene name (e.g., 'ABC123').
 TSS="$datasets/bed/tss.hg19.chr22.bed.gz"
 
-answer_4=$(bedtools map -c 4 -o median -a $TSS -b $CTCF \
+answer_4=$(bedtools map -c 4 -o median -a $TSS -b $HeLa \
     | sort -k7nr \
     | head -n1 \
     | awk '{print $4}')
@@ -53,12 +57,13 @@ echo "answer-4: $answer_4"
 #Use BEDtools to identify the longest interval on chr22 that is not
 #covered by genes.hg19.bed.gz. Report the interval like chr1:100-500.
 genes=$datasets/bed/genes.hg19.bed.gz
+genome=$datasets/genome/hg19.genome
 
-answer_5=$(bedtools intersect -v -a $genes -b $CTCF \
-    | awk 'BEGIN {OFS="\t"} {print $0, $3 -$2}' \
-    | sort -k7nr \
+answer_5=$(bedtools complement -i $genes -g $genome \
+    | awk 'BEGIN {OFS="\t"} {print $0, $3-$2}' \
+    | sort -k4nr \
     | head -n1 \
-    | awk '{print $1":"$2"-"$3}')
+    | awk '{print$1 ":" $2 "-" $3}')
 
 echo "answer-5: $answer_5"
 
